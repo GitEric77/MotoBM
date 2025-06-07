@@ -40,6 +40,8 @@ parser.add_argument('-zc', '--zone-capacity', default=160, type=int,
 parser.add_argument('-c', '--customize', action='store_true',
                     help='Include customized values for each channel.')
 parser.add_argument('-cs', '--callsign', help='Only list callsigns containing specified string like a region number.')
+parser.add_argument('-tg', '--talkgroups', action='store_true',
+                    help='Create channels only for active talkgroups on repeaters (no channels with blank contact ID).')
 
 
 args = parser.parse_args()
@@ -153,45 +155,75 @@ def filter_list():
     f.close()
 
 
-def process_channels():
+def get_talkgroup_channels(repeater_id):
+    """
+    Get talkgroups for a specific repeater from BrandMeister API
+    
+    Args:
+        repeater_id (int): Repeater ID
+        
+    Returns:
+        list: List of talkgroup IDs configured for this repeater
+    """
+    try:
+        url = f'https://api.brandmeister.network/v2/device/{repeater_id}/talkgroup'
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(url, verify=False)
+        response.raise_for_status()
+        talkgroups_data = response.json()
+        
+        # Extract talkgroup IDs
+        tg_ids = []
+        for tg in talkgroups_data:
+            if 'talkgroup' in tg and tg.get('slot') is not None:
+                tg_ids.append((tg['talkgroup'], tg['slot']))
+        
+        return tg_ids
+    except Exception as e:
+        print(f"Error fetching talkgroups for repeater {repeater_id}: {e}")
+        return []
+
+
+def format_talkgroup_channel(item, tg_id, timeslot):
+    """Format a channel for a specific talkgroup"""
+    global custom_values
     global output_list
-
-    channel_chunks = [filtered_list[i:i + args.zone_capacity] for i in range(0, len(filtered_list), args.zone_capacity)]
-    chunk_number = 0
-
-    for chunk in channel_chunks:
-        channels = ''
-        chunk_number += 1
-        output_list = []
-
-        for item in chunk:
-            channels += format_channel(item)
-
-        print('\n',
-              tabulate(output_list, headers=['Callsign', 'RX', 'TX', 'CC', 'City', 'Last seen', 'URL'],
-                       disable_numparse=True),
-              '\n')
-
-        if len(channel_chunks) == 1:
-            zone_alias = args.name
-        else:
-            zone_alias = f'{args.name} #{chunk_number}'
-
-        write_zone_file(zone_alias, f'''<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<config>
-  <category name="Zone">
-    <set name="Zone" alias="{zone_alias}" key="NORMAL">
-      <collection name="ZoneItems">
-        {channels}
-      </collection>
-      <field name="ZP_ZONEALIAS">{zone_alias}</field>
-      <field name="ZP_ZONETYPE" Name="Normal">NORMAL</field>
-      <field name="ZP_ZVFNLITEM" Name="None">NONE</field>
-      <field name="Comments"></field>
-    </set>
-  </category>
-</config>
-''')
+    
+    ch_alias = f"{item['callsign']} TG{tg_id}"
+    ch_rx = item['rx']
+    ch_tx = item['tx']
+    ch_cc = item['colorcode']
+    
+    # Add to output list for display
+    output_list.append([ch_alias, ch_rx, ch_tx, ch_cc, item['city'], item['last_seen'],
+                        f"https://brandmeister.network/?page=repeater&id={item['id']} TG{tg_id}"])
+    
+    return f'''
+<set name="ConventionalPersonality" alias="{ch_alias}" key="DGTLCONV6PT25">
+  <field name="CP_PERSTYPE" Name="Digital">DGTLCONV6PT25</field>
+  <field name="CP_SLTASSGMNT" Name="{timeslot}">SLOT{timeslot}</field>
+  <field name="CP_COLORCODE">{ch_cc}</field>
+  <field name="CP_TXFREQ">{ch_rx}</field>
+  <field name="CP_RXFREQ">{ch_tx}</field>
+  <field name="CP_EMACKALERTEN">True</field>
+  <field name="CP_CNVPERSALIAS">{ch_alias}</field>
+  <field name="CP_TXINHXPLEN" Name="Color Code Free">MTCHCLRCD</field>
+  <field name="CP_MLTSTPSNLTIND">True</field>
+  <field name="CP_GPSRVRTPERSIT" Name="Selected">SELECTED</field>
+  <field name="CP_OVCMDECODEENABLE">True</field>
+  <field name="CP_TXCOMPUDPIPHEADEN" Name="DMR Standard">DMR_UDP_HEADER</field>
+  <field name="CP_LOCATIONDATADELIVERYMODE" Name="Follow Data Call Confirmed">FOLLOW_CALL_DATA_SETTING</field>
+  <field name="CP_MYCALLADCRTR" Name="Follow Admit Criteria">FOLLOW_ADMIT_CRITERIA</field>
+  <field name="CP_TEXTMESSAGETYPE" Name="Advantage">TMS</field>
+  <field name="CP_TRANSMITINTERRUPTTYPE" Name="Advantage">PROPRIETARY</field>
+  <field name="CP_MLTSTPSNLTIND">True</field>
+  <field name="CP_TOT">180</field>
+  <field name="CP_INTRPTMSGDLY">510</field>
+  <field name="CP_GRPCALLHANGTIME">3000</field>
+  <field name="CP_GRPID">{tg_id}</field>
+{custom_values}
+</set>
+    '''
 
 
 def format_channel(item):
@@ -285,6 +317,171 @@ def format_channel(item):
 {custom_values}
 </set>
     '''
+
+
+def process_channels():
+    global output_list
+
+    if args.talkgroups:
+        # Copy contact_template.csv to contacts.csv if it exists
+        if exists('contact_template.csv'):
+            import shutil
+            try:
+                shutil.copy('contact_template.csv', 'contacts.csv')
+                print("Copied contact_template.csv to contacts.csv")
+            except Exception as e:
+                print(f"Error copying contact template: {e}")
+                
+        # Collect all unique talkgroup IDs
+        unique_talkgroups = set()
+        
+        # When using -tg, create a separate file for each repeater
+        for item in filtered_list:
+            channels = ''
+            output_list = []
+            
+            try:
+                tg_channels = get_talkgroup_channels(item['id'])
+                if not tg_channels:
+                    continue  # Skip repeaters with no talkgroups
+                    
+                for tg_id, slot in tg_channels:
+                    channels += format_talkgroup_channel(item, tg_id, slot)
+                    unique_talkgroups.add(tg_id)  # Add to unique talkgroups set
+                
+                # Use city name for zone name
+                city = item['city'].split(',')[0].strip()
+                callsign = item['callsign']
+                
+                # Create filename (can be longer)
+                filename = f"{callsign}_{city.replace(' ', '_')}"
+                
+                # Create zone alias (must be 16 chars or less)
+                if len(callsign) + 1 >= 16:
+                    # If callsign is already too long, just use it
+                    zone_alias = callsign[:16]
+                else:
+                    # Use remaining space for city
+                    city_max_len = 15 - len(callsign)
+                    city_abbr = city.replace(' ', '')[:city_max_len]
+                    zone_alias = f"{callsign}_{city_abbr}"
+                # Ensure it's exactly 16 chars or less
+                zone_alias = zone_alias[:16]
+                
+                print('\n',
+                      tabulate(output_list, headers=['Callsign', 'RX', 'TX', 'CC', 'City', 'Last seen', 'URL'],
+                               disable_numparse=True),
+                      '\n')
+                
+                write_zone_file(filename, f'''<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
+<config>
+  <category name=\"Zone\">
+    <set name=\"Zone\" alias=\"{zone_alias}\" key=\"NORMAL\">
+      <collection name=\"ZoneItems\">
+        {channels}
+      </collection>
+      <field name=\"ZP_ZONEALIAS\">{zone_alias}</field>
+      <field name=\"ZP_ZONETYPE\" Name=\"Normal\">NORMAL</field>
+      <field name=\"ZP_ZVFNLITEM\" Name=\"None\">NONE</field>
+      <field name=\"Comments\"></field>
+    </set>
+  </category>
+</config>
+''')
+            except Exception as e:
+                print(f"Error processing talkgroups for {item['callsign']}: {e}")
+        
+        # Update contacts.csv with unique talkgroup IDs
+        try:
+            import csv
+            import time
+            
+            # Read the existing CSV file
+            with open('contacts.csv', 'r', newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                rows = list(reader)
+            
+            # Keep the header rows (first 2 rows)
+            header_rows = rows[:2]
+            template_row = rows[2] if len(rows) > 2 else [''] * len(header_rows[0])
+            
+            # Create new rows with talkgroup data
+            new_rows = []
+            for tg_id in sorted(unique_talkgroups):
+                # Extract only numeric characters from talkgroup ID
+                numeric_tg_id = ''.join(c for c in str(tg_id) if c.isdigit())
+                if numeric_tg_id:  # Only add if there are numeric characters
+                    new_row = template_row.copy() if template_row else [''] * len(header_rows[0])
+                    new_row[25] = numeric_tg_id    # Column Z: DigitalCalls-DU_CALLLSTID
+                    
+                    # Fetch talkgroup name from BrandMeister API
+                    try:
+                        print(f"Fetching name for TG {numeric_tg_id}...", end="", flush=True)
+                        url = f'https://api.brandmeister.network/v2/talkgroup/{numeric_tg_id}'
+                        response = requests.get(url, verify=False)
+                        response.raise_for_status()
+                        data = response.json()
+                        if 'Name' in data and data['Name']:
+                            new_row[0] = data['Name']  # Column A: ContactName from API
+                            print(f" Found: {data['Name']}")
+                        else:
+                            new_row[0] = numeric_tg_id  # Fallback to ID if no name
+                            print(" No name found")
+                            print(f" Debug - API response: {data}")
+                        time.sleep(0.2)  # Be nice to the API
+                    except Exception as api_error:
+                        print(f"\nError fetching name for TG {numeric_tg_id}: {api_error}")
+                        new_row[0] = numeric_tg_id  # Fallback to ID if API fails
+                    
+                    new_rows.append(new_row)
+            
+            # Write the updated CSV file
+            with open('contacts.csv', 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(header_rows)
+                writer.writerows(new_rows)
+            
+            print(f"Updated contacts.csv with {len(new_rows)} unique talkgroups and their names")
+        except Exception as e:
+            print(f"Error updating contacts.csv: {e}")
+    else:
+        # Original behavior for non-talkgroup mode
+        channel_chunks = [filtered_list[i:i + args.zone_capacity] for i in range(0, len(filtered_list), args.zone_capacity)]
+        chunk_number = 0
+
+        for chunk in channel_chunks:
+            channels = ''
+            chunk_number += 1
+            output_list = []
+
+            for item in chunk:
+                channels += format_channel(item)
+
+            print('\n',
+                  tabulate(output_list, headers=['Callsign', 'RX', 'TX', 'CC', 'City', 'Last seen', 'URL'],
+                           disable_numparse=True),
+                  '\n')
+
+            if len(channel_chunks) == 1:
+                zone_alias = args.name
+            else:
+                zone_alias = f'{args.name} #{chunk_number}'
+
+            write_zone_file(zone_alias, f'''<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
+<config>
+  <category name=\"Zone\">
+    <set name=\"Zone\" alias=\"{zone_alias}\" key=\"NORMAL\">
+      <collection name=\"ZoneItems\">
+        {channels}
+      </collection>
+      <field name=\"ZP_ZONEALIAS\">{zone_alias}</field>
+      <field name=\"ZP_ZONETYPE\" Name=\"Normal\">NORMAL</field>
+      <field name=\"ZP_ZVFNLITEM\" Name=\"None\">NONE</field>
+      <field name=\"Comments\"></field>
+    </set>
+  </category>
+</config>
+''')
 
 
 def write_zone_file(zone_alias, contents):

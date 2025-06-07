@@ -9,7 +9,7 @@ MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [B
 ## Usage
 
 ```
-usage: zone.py [-h] [-f] -n NAME -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lng LNG] [-p] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN]
+usage: zone.py [-h] [-f] -n NAME -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lng LNG] [-p] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg]
 
 Generate MOTOTRBO zone files from BrandMeister.
 
@@ -34,6 +34,7 @@ optional arguments:
   -c, --customize       Include customized values for each channel.
   -cs CALLSIGN, --callsign CALLSIGN
                         Only list callsigns containing specified string like a region number.
+  -tg, --talkgroups     Create channels only for active talkgroups on repeaters (no channels with blank contact ID).
 ```
 
 ## Examples
@@ -53,6 +54,10 @@ will create XML zone file(s) with all repeaters for 70cm band with 6 digit ID (r
 `./zone.py -n 'Stockholm' -b uhf -t gps -lat 59.225 -lon 18.250 -6`
 
 will create XML zone file(s) with all repeaters for 70cm band with 6 digit ID (real repeaters, not just hotspots) 100 kilometers around Stockholm.
+
+`./zone.py -n 'Minnesota' -b uhf -t mcc -m 310 -tg`
+
+will create separate XML zone files for each repeater with active talkgroups. It will also create a contacts.csv file with all unique talkgroup IDs and their names fetched from the BrandMeister API.
 
 In case your latitude and/or longitude have negative values, please refer them this way to avoid errors:
 
@@ -74,12 +79,30 @@ DB0KI       144.8750  144.8750  2     Kniebis                 https://brandmeist
 
 thus giving you additional insight.
 
+## Talkgroup Mode (-tg)
+
+When using the `-tg` flag, the script operates in talkgroup mode:
+
+1. Creates a separate zone file for each repeater with active talkgroups
+2. Names each zone file based on the repeater's callsign and city
+3. Abbreviates zone aliases to fit within 16 characters (radio display limit)
+4. Creates a contacts.csv file with all unique talkgroup IDs
+5. Fetches talkgroup names from the BrandMeister API and adds them to contacts.csv
+
+The contacts.csv file can be imported into CPS2 to create digital contacts for all talkgroups.
+
 ## Importing files to CPS2
 
+### Importing Zone Files
 * Open the XML file contents in text editor, like Notepad.
 * Select All. Copy.
 * Open CPS2, on its left pane go to `Configuration` -> `Zone/Channel Assignment`, right-click on `Zone` and choose Paste.
 * Don't forget to set up the parameters for the new zone, like `Tx Contact Name` and `Rx Group List`. Can be done at once with `Fill Down` feature in CPS2.
+
+### Importing Contacts (from talkgroup mode)
+* Open CPS2, go to `Contacts` -> `Digital`
+* Click on `Import...` and select the contacts.csv file
+* Follow the import wizard to map the columns correctly
 
 ## What about CPS16?
 
