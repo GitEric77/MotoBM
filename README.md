@@ -1,10 +1,13 @@
 # zone
-MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve the the list of actual DMR repeaters and importing them into Motorola DMR radios as zones, filtered by country or location.
+MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve the the list of actual DMR repeaters and importing them into Motorola DMR radios as zones, filtered by country or location. This is a branch of yl3im (Inga's) motobm repo. Inga is the original author who inspired me to iterate the solution based on different use cases (talkgroup and GUI support).
 
 ## Installation
 
 * `git clone https://github.com/yl3im/motobm.git`
 * `pip install -r requirements.txt` as root or `pip install -r requirements.txt --user` as ordinary user.
+
+## GUI
+See README_streamlit.md for using the Streamlit web GUI
 
 ## Usage
 
