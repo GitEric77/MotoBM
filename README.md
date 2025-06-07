@@ -87,7 +87,7 @@ thus giving you additional insight.
 
 When using the `-tg` flag, the script operates in talkgroup mode:
 
-1. Creates a separate zone file for each repeater with active talkgroups
+1. Creates a separate zone file for each repeater with active talkgroups (ignoring -n argument)
 2. Names each zone file based on the repeater's callsign and city
 3. Abbreviates zone aliases to fit within 16 characters (radio display limit)
 4. Creates a contacts.csv file with all unique talkgroup IDs
