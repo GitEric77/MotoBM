@@ -9,14 +9,14 @@ MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [B
 ## Usage
 
 ```
-usage: zone.py [-h] [-f] -n NAME -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lng LNG] [-p] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg]
+usage: zone.py [-h] [-f] [-n NAME] -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lng LNG] [-p] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg]
 
 Generate MOTOTRBO zone files from BrandMeister.
 
 optional arguments:
   -h, --help            show this help message and exit
   -f, --force           Forcibly download repeater list even if it exists locally.
-  -n NAME, --name NAME  Zone name. Choose it freely on your own.
+  -n NAME, --name NAME  Zone name. Choose it freely on your own. Required unless using -tg argument.
   -b {vhf,uhf}, --band {vhf,uhf}
                         Repeater band.
   -t {mcc,qth,gps}, --type {mcc,qth,gps}
@@ -55,7 +55,7 @@ will create XML zone file(s) with all repeaters for 70cm band with 6 digit ID (r
 
 will create XML zone file(s) with all repeaters for 70cm band with 6 digit ID (real repeaters, not just hotspots) 100 kilometers around Stockholm.
 
-`./zone.py -n 'Minnesota' -b uhf -t mcc -m 310 -tg`
+`./zone.py -b uhf -t mcc -m 310 -tg`
 
 will create separate XML zone files for each repeater with active talkgroups. It will also create a contacts.csv file with all unique talkgroup IDs and their names fetched from the BrandMeister API.
 
@@ -66,6 +66,10 @@ In case your latitude and/or longitude have negative values, please refer them t
 or
 
 `./zone.py -n 'Minneapolis' -b uhf -t gps -lat 44.9570 -lon=-93.2780 -6`
+
+or
+
+`./zone.py -b uhf -t gps -lat 44.9570 -lon " -93.2780" -r 200 -6 -tg`
 
 While creating zone file(s) the script will also output the list of found repeaters like this:
 
