@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Generate MOTOTRBO zone files from 
 
 parser.add_argument('-f', '--force', action='store_true',
                     help='Forcibly download repeater list even if it exists locally.')
-parser.add_argument('-n', '--name', required=True, help='Zone name. Choose it freely on your own.')
+parser.add_argument('-n', '--name', required=False, help='Zone name. Choose it freely on your own. Required unless using -tg argument.')
 parser.add_argument('-b', '--band', choices=['vhf', 'uhf'], required=True, help='Repeater band.')
 
 parser.add_argument('-t', '--type', choices=['mcc', 'qth', 'gps'], required=True,
@@ -45,6 +45,10 @@ parser.add_argument('-tg', '--talkgroups', action='store_true',
 
 
 args = parser.parse_args()
+
+# Validate that name is provided if not using talkgroups mode
+if not args.name and not args.talkgroups:
+    parser.error("the -n/--name argument is required when not using -tg/--talkgroups")
 
 
 bm_url = 'https://api.brandmeister.network/v2/device'
