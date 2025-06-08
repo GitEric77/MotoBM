@@ -200,13 +200,33 @@ def format_talkgroup_channel(item, tg_id, timeslot):
     global custom_values
     global output_list
     
-    ch_alias = f"{item['callsign']} TG{tg_id}"
+    # Fetch talkgroup name from BrandMeister API
+    tg_name = None
+    try:
+        url = f'https://api.brandmeister.network/v2/talkgroup/{tg_id}'
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(url, verify=False)
+        response.raise_for_status()
+        data = response.json()
+        if 'Name' in data and data['Name']:
+            tg_name = data['Name']
+    except Exception:
+        pass
+    
+    # Use talkgroup name if available, otherwise use talkgroup ID
+    if tg_name:
+        ch_alias = f"{tg_name}"[:16]  # Limit to 16 characters
+        ukp_value = str(tg_name)[:16]  # Limit to 16 characters
+    else:
+        ch_alias = f"TG{tg_id}"[:16]  # Limit to 16 characters
+        ukp_value = str(tg_id)[:16]  # Limit to 16 characters
+    
     ch_rx = item['rx']
     ch_tx = item['tx']
     ch_cc = item['colorcode']
     
     # Add to output list for display
-    output_list.append([ch_alias, ch_rx, ch_tx, ch_cc, item['city'], item['last_seen'],
+    output_list.append([item['callsign'], ch_rx, ch_tx, ch_cc, item['city'], item['last_seen'],
                         f"https://brandmeister.network/?page=repeater&id={item['id']} TG{tg_id}"])
     
     return f'''
@@ -229,9 +249,9 @@ def format_talkgroup_channel(item, tg_id, timeslot):
   <field name="CP_TRANSMITINTERRUPTTYPE" Name="Advantage">PROPRIETARY</field>
   <field name="CP_MLTSTPSNLTIND">True</field>
   <field name="CP_TOT">180</field>
+  <field name="CP_RASDATAITEM" Name="None">None</field>
   <field name="CP_INTRPTMSGDLY">510</field>
-  <field name="CP_GRPCALLHANGTIME">3000</field>
-  <field name="CP_GRPID">{tg_id}</field>
+  <field name="CP_UKPPERS" Name="{ukp_value}">{ukp_value}</field>
 {custom_values}
 </set>
     '''
