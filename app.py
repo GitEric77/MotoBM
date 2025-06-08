@@ -33,6 +33,7 @@ with tab1:
             qth = st.text_input("QTH Locator", help="QTH locator index like KO26BX")
             radius = st.number_input("Radius (km)", min_value=1, value=100, 
                                     help="Area radius in kilometers around the center of the chosen QTH locator")
+            st.text(f"Equivalent: {radius:.1f} km = {radius * 0.621371:.1f} miles")
         
         elif search_type == "gps":
             col_lat, col_lon = st.columns(2)
@@ -42,6 +43,7 @@ with tab1:
                 longitude = st.number_input("Longitude", format="%.6f")
             radius = st.number_input("Radius (km)", min_value=1, value=100, 
                                     help="Area radius in kilometers around the GPS coordinates")
+            st.text(f"Equivalent: {radius:.1f} km = {radius * 0.621371:.1f} miles")
     
     with col2:
         force_download = st.checkbox("Force Download", 
@@ -176,6 +178,7 @@ with tab2:
             radius_tg = st.number_input("Radius (km)", min_value=1, value=100, 
                                        help="Area radius in kilometers around the center of the chosen QTH locator",
                                        key="radius_tg")
+            st.text(f"Equivalent: {radius_tg:.1f} km = {radius_tg * 0.621371:.1f} miles")
         
         elif search_type_tg == "gps":
             col_lat_tg, col_lon_tg = st.columns(2)
@@ -186,6 +189,7 @@ with tab2:
             radius_tg = st.number_input("Radius (km)", min_value=1, value=100, 
                                        help="Area radius in kilometers around the GPS coordinates",
                                        key="radius_tg")
+            st.text(f"Equivalent: {radius_tg:.1f} km = {radius_tg * 0.621371:.1f} miles")
     
     with col2:
         force_download_tg = st.checkbox("Force Download", 
@@ -333,5 +337,5 @@ st.sidebar.header("About")
 st.sidebar.markdown("""
 MOTOTRBO Zone Generator uses the [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve DMR repeater information and generate zone files for Motorola DMR radios.
 
-[View on GitHub](https://github.com/yl3im/motobm)
+[View on GitHub](https://github.com/EricGit77/MotoBM)
 """)
