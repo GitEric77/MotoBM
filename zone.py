@@ -30,9 +30,9 @@ parser.add_argument('-r', '--radius', default=100, type=int,
                     help='Area radius in kilometers around the center of the chosen QTH locator. Defaults to 100.')
 
 parser.add_argument('-lat', type=float, help='Latitude of a GPS position.')
-parser.add_argument('-lng', '-lon', type=float, help='Longitude of a GPS position.')
+parser.add_argument('-lon', type=float, help='Longitude of a GPS position.')
 
-parser.add_argument('-p', '--pep', action='store_true', help='Only select repeaters with defined power.')
+parser.add_argument('-p', '--pep', nargs='?', const='0', help='Only select repeaters with defined power. Optional value specifies minimum power in watts.')
 parser.add_argument('-6', '--six', action='store_true', help='Only select repeaters with 6 digit ID.')
 parser.add_argument('-zc', '--zone-capacity', default=160, type=int,
                     help='Channel capacity within zone. 160 by default as for top models, use 16 for the lite and '
@@ -42,6 +42,8 @@ parser.add_argument('-c', '--customize', action='store_true',
 parser.add_argument('-cs', '--callsign', help='Only list callsigns containing specified string like a region number.')
 parser.add_argument('-tg', '--talkgroups', action='store_true',
                     help='Create channels only for active talkgroups on repeaters (no channels with blank contact ID).')
+parser.add_argument('-o', '--output', default='output',
+                    help='Output directory for generated files. Default is "output".')
 
 
 args = parser.parse_args()
@@ -62,7 +64,7 @@ custom_values = ''
 if args.type == 'qth':
     qth_coords = maidenhead.to_location(args.qth, center=True)
 if args.type == 'gps':
-    qth_coords = (args.lat, args.lng)
+    qth_coords = (args.lat, args.lon)
 
 if args.mcc and not str(args.mcc).isdigit():
     args.mcc = mobile_codes.alpha2(args.mcc)[4]
@@ -132,8 +134,13 @@ def filter_list():
                                                                          (item['lat'], item['lng'])) > args.radius:
             continue
 
-        if args.pep and (not str(item['pep']).isdigit() or str(item['pep']) == '0'):
-            continue
+        if args.pep:
+            # Skip if power is not defined or is zero
+            if not str(item['pep']).isdigit() or str(item['pep']) == '0':
+                continue
+            # Skip if power is less than specified minimum (if provided)
+            if args.pep != '0' and int(item['pep']) < int(args.pep):
+                continue
 
         if args.six and not len(str(item['id'])) == 6:
             continue
@@ -193,13 +200,33 @@ def format_talkgroup_channel(item, tg_id, timeslot):
     global custom_values
     global output_list
     
-    ch_alias = f"{item['callsign']} TG{tg_id}"
+    # Fetch talkgroup name from BrandMeister API
+    tg_name = None
+    try:
+        url = f'https://api.brandmeister.network/v2/talkgroup/{tg_id}'
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(url, verify=False)
+        response.raise_for_status()
+        data = response.json()
+        if 'Name' in data and data['Name']:
+            tg_name = data['Name']
+    except Exception:
+        pass
+    
+    # Use talkgroup name if available, otherwise use talkgroup ID
+    if tg_name:
+        ch_alias = f"{tg_name}"[:16]  # Limit to 16 characters
+        ukp_value = str(tg_name)[:16]  # Limit to 16 characters
+    else:
+        ch_alias = f"TG{tg_id}"[:16]  # Limit to 16 characters
+        ukp_value = str(tg_id)[:16]  # Limit to 16 characters
+    
     ch_rx = item['rx']
     ch_tx = item['tx']
     ch_cc = item['colorcode']
     
     # Add to output list for display
-    output_list.append([ch_alias, ch_rx, ch_tx, ch_cc, item['city'], item['last_seen'],
+    output_list.append([item['callsign'], ch_rx, ch_tx, ch_cc, item['city'], item['last_seen'],
                         f"https://brandmeister.network/?page=repeater&id={item['id']} TG{tg_id}"])
     
     return f'''
@@ -222,9 +249,9 @@ def format_talkgroup_channel(item, tg_id, timeslot):
   <field name="CP_TRANSMITINTERRUPTTYPE" Name="Advantage">PROPRIETARY</field>
   <field name="CP_MLTSTPSNLTIND">True</field>
   <field name="CP_TOT">180</field>
+  <field name="CP_RASDATAITEM" Name="None">None</field>
   <field name="CP_INTRPTMSGDLY">510</field>
-  <field name="CP_GRPCALLHANGTIME">3000</field>
-  <field name="CP_GRPID">{tg_id}</field>
+  <field name="CP_UKPPERS" Name="{ukp_value}">{ukp_value}</field>
 {custom_values}
 </set>
     '''
@@ -327,14 +354,7 @@ def process_channels():
     global output_list
 
     if args.talkgroups:
-        # Copy contact_template.csv to contacts.csv if it exists
-        if exists('contact_template.csv'):
-            import shutil
-            try:
-                shutil.copy('contact_template.csv', 'contacts.csv')
-                print("Copied contact_template.csv to contacts.csv")
-            except Exception as e:
-                print(f"Error copying contact template: {e}")
+        # Template copying is now handled in the contacts.csv section
                 
         # Collect all unique talkgroup IDs
         unique_talkgroups = set()
@@ -399,9 +419,25 @@ def process_channels():
         try:
             import csv
             import time
+            import os
+            
+            # Create output directory if it doesn't exist
+            if not os.path.exists(args.output):
+                os.makedirs(args.output)
+            
+            contacts_file = os.path.join(args.output, 'contacts.csv')
+            
+            # Copy template if it exists
+            if exists('contact_template.csv'):
+                import shutil
+                try:
+                    shutil.copy('contact_template.csv', contacts_file)
+                    print(f"Copied contact_template.csv to {contacts_file}")
+                except Exception as e:
+                    print(f"Error copying contact template: {e}")
             
             # Read the existing CSV file
-            with open('contacts.csv', 'r', newline='') as csvfile:
+            with open(contacts_file, 'r', newline='') as csvfile:
                 reader = csv.reader(csvfile)
                 rows = list(reader)
             
@@ -439,13 +475,31 @@ def process_channels():
                     
                     new_rows.append(new_row)
             
-            # Write the updated CSV file
-            with open('contacts.csv', 'w', newline='') as csvfile:
+            # Get existing talkgroup IDs to avoid duplicates
+            existing_tg_ids = set()
+            for row in rows[2:]:  # Skip header rows
+                if len(row) > 25 and row[25]:  # Check if column Z has a value
+                    existing_tg_ids.add(row[25])
+            
+            # Filter out rows that already exist and ensure column AE is "Group Call"
+            unique_new_rows = []
+            for row in new_rows:
+                if row[25] not in existing_tg_ids:
+                    # Make sure row has enough columns
+                    while len(row) <= 30:
+                        row.append("")
+                    # Set column AE (index 30) to "Group Call"
+                    row[30] = "Group Call"
+                    unique_new_rows.append(row)
+            
+            # Write the updated CSV file with existing entries plus new ones
+            with open(contacts_file, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(header_rows)
-                writer.writerows(new_rows)
+                writer.writerows(rows[2:])  # Write existing entries after headers
+                writer.writerows(unique_new_rows)  # Append new unique entries
             
-            print(f"Updated contacts.csv with {len(new_rows)} unique talkgroups and their names")
+            print(f"Updated {contacts_file} with {len(unique_new_rows)} new unique talkgroups (total: {len(rows[2:]) + len(unique_new_rows)})")
         except Exception as e:
             print(f"Error updating contacts.csv: {e}")
     else:
@@ -489,7 +543,13 @@ def process_channels():
 
 
 def write_zone_file(zone_alias, contents):
-    zone_file_name = zone_alias + ".xml"
+    import os
+    
+    # Create output directory if it doesn't exist
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+    
+    zone_file_name = os.path.join(args.output, zone_alias + ".xml")
     zone_file = open(zone_file_name, "wt")
     zone_file.write(contents)
     zone_file.close()

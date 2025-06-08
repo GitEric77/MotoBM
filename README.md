@@ -1,15 +1,18 @@
 # zone
-MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve the the list of actual DMR repeaters and importing them into Motorola DMR radios as zones, filtered by country or location. This is a branch of yl3im (Inga's) motobm repo. Inga is the original author who inspired me to iterate the solution based on different use cases (talkgroup support). See gui branch for a version with a Streamlit GUI web interface.
+MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve the the list of actual DMR repeaters and importing them into Motorola DMR radios as zones, filtered by country or location. This is a branch of yl3im (Inga's) motobm repo. Inga is the original author who inspired me to iterate the solution based on different use cases (talkgroup and GUI support).
 
 ## Installation
 
 * `git clone https://github.com/yl3im/motobm.git`
 * `pip install -r requirements.txt` as root or `pip install -r requirements.txt --user` as ordinary user.
 
+## GUI
+See README_streamlit.md for using the Streamlit web GUI
+
 ## Usage
 
 ```
-usage: zone.py [-h] [-f] [-n NAME] -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lng LNG] [-p] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg]
+usage: zone.py [-h] [-f] [-n NAME] -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lon LON] [-p [PEP]] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg] [-o OUTPUT]
 
 Generate MOTOTRBO zone files from BrandMeister.
 
@@ -26,8 +29,8 @@ optional arguments:
   -r RADIUS, --radius RADIUS
                         Area radius in kilometers around the center of the chosen QTH locator. Defaults to 100.
   -lat LAT              Latitude of a GPS position.
-  -lng LNG, -lon LNG    Longitude of a GPS position.
-  -p, --pep             Only select repeaters with defined power.
+  -lon LON              Longitude of a GPS position.
+  -p, --pep [PEP]       Only select repeaters with defined power. Optional value specifies minimum power in watts.
   -6, --six             Only select repeaters with 6 digit ID.
   -zc ZONE_CAPACITY, --zone-capacity ZONE_CAPACITY
                         Channel capacity within zone. 160 by default as for top models, use 16 for the lite and non-display ones.
@@ -35,7 +38,12 @@ optional arguments:
   -cs CALLSIGN, --callsign CALLSIGN
                         Only list callsigns containing specified string like a region number.
   -tg, --talkgroups     Create channels only for active talkgroups on repeaters (no channels with blank contact ID).
+  -o OUTPUT, --output OUTPUT
+                        Output directory for generated files. Default is "output".
 ```
+
+## Contact Template
+Contacts added to 'contact_template.csv' will be preseved in the contacts.csv output file.
 
 ## Examples
 
@@ -59,17 +67,20 @@ will create XML zone file(s) with all repeaters for 70cm band with 6 digit ID (r
 
 will create separate XML zone files for each repeater with active talkgroups. It will also create a contacts.csv file with all unique talkgroup IDs and their names fetched from the BrandMeister API.
 
-In case your latitude and/or longitude have negative values, please refer them this way to avoid errors:
+`./zone.py -n 'Minneapolis' -b uhf -t gps -lat 44.9570 -lon=-93.2780 -6 -o custom_folder`
+
+will create XML zone file(s) in the 'custom_folder' directory with all repeaters for 70cm band with 6 digit ID 100 kilometers around Minneapolis.
+
+In case your latitude and/or longitude have negative values, in the cli please enclose the negative values in quotes with a leading space :
 
 `./zone.py -n 'Minneapolis' -b uhf -t gps -lat 44.9570 -lon " -93.2780" -6`
-
 or
+`./zone.py -b uhf -t gps -lat 44.9570 -lon " -93.2780" -r 200 -6 -tg`
+
+in the gui you will see negative values formatted as
 
 `./zone.py -n 'Minneapolis' -b uhf -t gps -lat 44.9570 -lon=-93.2780 -6`
 
-or
-
-`./zone.py -b uhf -t gps -lat 44.9570 -lon " -93.2780" -r 200 -6 -tg`
 
 While creating zone file(s) the script will also output the list of found repeaters like this:
 
@@ -95,6 +106,16 @@ When using the `-tg` flag, the script operates in talkgroup mode:
 
 The contacts.csv file can be imported into CPS2 to create digital contacts for all talkgroups.
 
+## Output Files
+
+By default, all generated files (zone XML files and contacts.csv) are saved to the `output` directory. You can specify a different output directory using the `-o` or `--output` parameter:
+
+```
+./zone.py -n 'Germany' -b vhf -t mcc -m 262 -6 -o my_zones
+```
+
+This will save all generated files to the `my_zones` directory instead of the default `output` directory.
+
 ## Importing files to CPS2
 
 ### Importing Zone Files
@@ -105,7 +126,7 @@ The contacts.csv file can be imported into CPS2 to create digital contacts for a
 
 ### Importing Contacts (from talkgroup mode)
 * Open CPS2, go to `Contacts` -> `Digital`
-* Click on `Import...` and select the contacts.csv file
+* Click on `Import...` and select the contacts.csv file from the output directory
 * Follow the import wizard to map the columns correctly
 
 ## What about CPS16?
