@@ -313,22 +313,34 @@ with tab2:
 
 # Help section
 st.sidebar.header("Help")
-st.sidebar.markdown("""
+
+# Create download link for contact_template.csv
+template_href = ""
+if os.path.exists("contact_template.csv"):
+    with open("contact_template.csv", "r") as file:
+        template_content = file.read()
+    template_b64 = base64.b64encode(template_content.encode()).decode()
+    template_href = f'<a href="data:text/csv;base64,{template_b64}" download="contact_template.csv">contact_template.csv</a>'
+
+st.sidebar.markdown(f"""
 ## How to use
 1. Choose between Standard Mode or Talkgroup Mode
 2. Fill in the required fields
-3. Click the Generate button
-4. Download the generated files
+3. Upload a modified {template_href} file if you want the talkgroups named differently than Brandmeister
+4. Click the Generate button
+5. Download the generated files
+""", unsafe_allow_html=True)
 
+st.sidebar.markdown("""
 ## Importing to CPS2
 ### Zone Files
 - Open the XML file in a text editor
 - Select All and Copy
-- In CPS2, go to Configuration → Zone/Channel Assignment
+- In CPS2, go to Configuration - Zone/Channel Assignment
 - Right-click on Zone and choose Paste
 
 ### Contacts (Talkgroup Mode)
-- In CPS2, go to Contacts → Digital
+- In CPS2, go to Contacts - Digital
 - Click Import and select the contacts.csv file
 """)
 

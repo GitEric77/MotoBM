@@ -145,7 +145,7 @@ def filter_list():
         if args.six and not len(str(item['id'])) == 6:
             continue
 
-        if args.callsign and (not args.callsign in item['callsign'][:-1]):
+        if args.callsign and (not args.callsign in item['callsign']):
             continue
 
         if item['callsign'] == '':
@@ -200,21 +200,43 @@ def format_talkgroup_channel(item, tg_id, timeslot):
     global custom_values
     global output_list
     
-    # Fetch talkgroup name from BrandMeister API
-    tg_name = None
+    # Check if talkgroup ID exists in contacts.csv
+    contact_name = None
     try:
-        url = f'https://api.brandmeister.network/v2/talkgroup/{tg_id}'
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        response = requests.get(url, verify=False)
-        response.raise_for_status()
-        data = response.json()
-        if 'Name' in data and data['Name']:
-            tg_name = data['Name']
+        import csv
+        import os
+        contacts_file = os.path.join(args.output, 'contacts.csv')
+        if os.path.exists(contacts_file):
+            with open(contacts_file, 'r', newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)  # Skip header row 1
+                next(reader)  # Skip header row 2
+                for row in reader:
+                    if len(row) > 25 and row[25] == str(tg_id) and row[0]:  # Check if column A has a value
+                        contact_name = row[0]
+                        break
     except Exception:
         pass
     
-    # Use talkgroup name if available, otherwise use talkgroup ID
-    if tg_name:
+    # If talkgroup ID is not in contacts.csv or column A is empty, fetch from BrandMeister API
+    tg_name = None
+    if not contact_name:
+        try:
+            url = f'https://api.brandmeister.network/v2/talkgroup/{tg_id}'
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = requests.get(url, verify=False)
+            response.raise_for_status()
+            data = response.json()
+            if 'Name' in data and data['Name']:
+                tg_name = data['Name']
+        except Exception:
+            pass
+    
+    # Use contact name from contacts.csv if available, otherwise use talkgroup name from API or talkgroup ID
+    if contact_name:
+        ch_alias = f"{contact_name}"[:16]  # Limit to 16 characters
+        ukp_value = str(contact_name)[:16]  # Limit to 16 characters
+    elif tg_name:
         ch_alias = f"{tg_name}"[:16]  # Limit to 16 characters
         ukp_value = str(tg_name)[:16]  # Limit to 16 characters
     else:
@@ -354,12 +376,139 @@ def process_channels():
     global output_list
 
     if args.talkgroups:
-        # Template copying is now handled in the contacts.csv section
-                
-        # Collect all unique talkgroup IDs
+        # Collect all unique talkgroup IDs first
         unique_talkgroups = set()
         
-        # When using -tg, create a separate file for each repeater
+        # First pass: collect all talkgroup IDs
+        for item in filtered_list:
+            try:
+                tg_channels = get_talkgroup_channels(item['id'])
+                for tg_id, slot in tg_channels:
+                    unique_talkgroups.add(tg_id)
+            except Exception as e:
+                print(f"Error collecting talkgroups for {item['callsign']}: {e}")
+        
+        # Process contacts.csv first to ensure it exists with all needed talkgroups
+        try:
+            import csv
+            import time
+            import os
+            import shutil
+            
+            # Create output directory if it doesn't exist
+            if not os.path.exists(args.output):
+                os.makedirs(args.output)
+            
+            contacts_file = os.path.join(args.output, 'contacts.csv')
+            
+            # Copy template if it exists
+            if exists('contact_template.csv') and not exists(contacts_file):
+                try:
+                    shutil.copy('contact_template.csv', contacts_file)
+                    print(f"Copied contact_template.csv to {contacts_file}")
+                except Exception as e:
+                    print(f"Error copying contact template: {e}")
+            
+            # Create empty contacts file if it doesn't exist
+            if not exists(contacts_file):
+                with open(contacts_file, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(["ContactName", "Delete_Contact", "Rename_Contact", "Comments", "Delete_FiveToneCalls", 
+                                    "FiveToneCalls-S5CLDLL_5TTELEGRAM", "FiveToneCalls-S5CLDLL_5TCALLADD", "Delete_MDCCalls", 
+                                    "MDCCalls-AU_CALLLSTID", "MDCCalls-AU_MDCSYS", "MDCCalls-AU_RVRTPERS_Zone", 
+                                    "MDCCalls-AU_RVRTPERS", "MDCCalls-AU_SPTPLDPL", "MDCCalls-AU_CALLTYPE", 
+                                    "Delete_QuikCallIICalls", "QuikCallIICalls-QU_QCIISYS", "QuikCallIICalls-QU_RVRTPERS_Zone", 
+                                    "QuikCallIICalls-QU_RVRTPERS", "QuikCallIICalls-QU_CALLFORMAT", "QuikCallIICalls-QU_TONEATXFRE", 
+                                    "QuikCallIICalls-QU_CODEA", "QuikCallIICalls-QU_TONEBTXFRE", "QuikCallIICalls-QU_CODEB", 
+                                    "QuikCallIICalls-QU_STRIPPLDPL", "Delete_DigitalCalls", "DigitalCalls-DU_CALLLSTID", 
+                                    "DigitalCalls-DU_ROUTETYPE", "DigitalCalls-DU_CALLPRCDTNEN", "DigitalCalls-DU_RINGTYPE", 
+                                    "DigitalCalls-DU_TXTMSGALTTNTP", "DigitalCalls-DU_CALLTYPE"])
+                    writer.writerow(["Contact Name", "Delete_Contact", "Rename_Contact", "Comments", "Delete_FiveToneCalls", 
+                                    "Five Tone Calls - Telegram", "Five Tone Calls - Address", "Delete_MDCCalls", 
+                                    "MDC Calls - Call ID (Hex)", "MDC Calls - MDC System", "MDC Calls - Revert Channel Zone", 
+                                    "MDC Calls - Revert Channel", "MDC Calls - Strip TPL/DPL", "MDC Calls - Call Type", 
+                                    "Delete_QuikCallIICalls", "Quik CallII Calls - Quik-Call II System", 
+                                    "Quik CallII Calls - Revert Channel Zone", "Quik CallII Calls - Revert Channel", 
+                                    "Quik CallII Calls - Call Format", "Quik CallII Calls - Tone A Freq (Hz)", 
+                                    "Quik CallII Calls - Tone A Code", "Quik CallII Calls - Tone B Freq (Hz)", 
+                                    "Quik CallII Calls - Tone B Code", "Quik CallII Calls - Strip TPL/DPL", 
+                                    "Delete_DigitalCalls", "Digital Calls - Call ID", "Digital Calls - Route Type", 
+                                    "Digital Calls - Call Receive Tone", "Digital Calls - Ring Style", 
+                                    "Digital Calls - Text Message Alert Tone", "Digital Calls - Call Type"])
+            
+            # Read the existing CSV file
+            with open(contacts_file, 'r', newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                rows = list(reader)
+            
+            # Keep the header rows (first 2 rows)
+            header_rows = rows[:2]
+            template_row = rows[2] if len(rows) > 2 else [''] * len(header_rows[0])
+            
+            # Get existing talkgroup IDs to avoid duplicates
+            existing_tg_ids = set()
+            for row in rows[2:]:  # Skip header rows
+                if len(row) > 25 and row[25]:  # Check if column Z has a value
+                    existing_tg_ids.add(row[25])
+            
+            # Create new rows with talkgroup data
+            new_rows = []
+            for tg_id in sorted(unique_talkgroups):
+                # Extract only numeric characters from talkgroup ID
+                numeric_tg_id = ''.join(c for c in str(tg_id) if c.isdigit())
+                if numeric_tg_id and numeric_tg_id not in existing_tg_ids:  # Only add if not already in contacts
+                    new_row = template_row.copy() if template_row else [''] * len(header_rows[0])
+                    new_row[25] = numeric_tg_id    # Column Z: DigitalCalls-DU_CALLLSTID
+                    
+                    # Check if this talkgroup ID already exists in contacts.csv with a name
+                    existing_name = None
+                    for row in rows[2:]:  # Skip header rows
+                        if len(row) > 25 and row[25] == numeric_tg_id and row[0]:
+                            existing_name = row[0]
+                            break
+                    
+                    if existing_name:
+                        # Use existing name from contacts.csv
+                        new_row[0] = existing_name
+                        print(f"Using existing name for TG {numeric_tg_id}: {existing_name}")
+                    else:
+                        # Fetch talkgroup name from BrandMeister API
+                        try:
+                            print(f"Fetching name for TG {numeric_tg_id}...", end="", flush=True)
+                            url = f'https://api.brandmeister.network/v2/talkgroup/{numeric_tg_id}'
+                            response = requests.get(url, verify=False)
+                            response.raise_for_status()
+                            data = response.json()
+                            if 'Name' in data and data['Name']:
+                                new_row[0] = data['Name']  # Column A: ContactName from API
+                                print(f" Found: {data['Name']}")
+                            else:
+                                new_row[0] = numeric_tg_id  # Fallback to ID if no name
+                                print(" No name found")
+                            time.sleep(0.2)  # Be nice to the API
+                        except Exception as api_error:
+                            print(f"\nError fetching name for TG {numeric_tg_id}: {api_error}")
+                            new_row[0] = numeric_tg_id  # Fallback to ID if API fails
+                    
+                    # Make sure row has enough columns
+                    while len(new_row) <= 30:
+                        new_row.append("")
+                    # Set column AE (index 30) to "Group Call"
+                    new_row[30] = "Group Call"
+                    new_rows.append(new_row)
+            
+            # Write the updated CSV file with existing entries plus new ones
+            with open(contacts_file, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(header_rows)
+                writer.writerows(rows[2:])  # Write existing entries after headers
+                writer.writerows(new_rows)  # Append new unique entries
+            
+            print(f"Updated {contacts_file} with {len(new_rows)} new unique talkgroups (total: {len(rows[2:]) + len(new_rows)})")
+        except Exception as e:
+            print(f"Error updating contacts.csv: {e}")
+        
+        # Now create channels using the updated contacts.csv
         for item in filtered_list:
             channels = ''
             output_list = []
@@ -371,7 +520,6 @@ def process_channels():
                     
                 for tg_id, slot in tg_channels:
                     channels += format_talkgroup_channel(item, tg_id, slot)
-                    unique_talkgroups.add(tg_id)  # Add to unique talkgroups set
                 
                 # Use city name for zone name
                 city = item['city'].split(',')[0].strip()
@@ -415,93 +563,7 @@ def process_channels():
             except Exception as e:
                 print(f"Error processing talkgroups for {item['callsign']}: {e}")
         
-        # Update contacts.csv with unique talkgroup IDs
-        try:
-            import csv
-            import time
-            import os
-            
-            # Create output directory if it doesn't exist
-            if not os.path.exists(args.output):
-                os.makedirs(args.output)
-            
-            contacts_file = os.path.join(args.output, 'contacts.csv')
-            
-            # Copy template if it exists
-            if exists('contact_template.csv'):
-                import shutil
-                try:
-                    shutil.copy('contact_template.csv', contacts_file)
-                    print(f"Copied contact_template.csv to {contacts_file}")
-                except Exception as e:
-                    print(f"Error copying contact template: {e}")
-            
-            # Read the existing CSV file
-            with open(contacts_file, 'r', newline='') as csvfile:
-                reader = csv.reader(csvfile)
-                rows = list(reader)
-            
-            # Keep the header rows (first 2 rows)
-            header_rows = rows[:2]
-            template_row = rows[2] if len(rows) > 2 else [''] * len(header_rows[0])
-            
-            # Create new rows with talkgroup data
-            new_rows = []
-            for tg_id in sorted(unique_talkgroups):
-                # Extract only numeric characters from talkgroup ID
-                numeric_tg_id = ''.join(c for c in str(tg_id) if c.isdigit())
-                if numeric_tg_id:  # Only add if there are numeric characters
-                    new_row = template_row.copy() if template_row else [''] * len(header_rows[0])
-                    new_row[25] = numeric_tg_id    # Column Z: DigitalCalls-DU_CALLLSTID
-                    
-                    # Fetch talkgroup name from BrandMeister API
-                    try:
-                        print(f"Fetching name for TG {numeric_tg_id}...", end="", flush=True)
-                        url = f'https://api.brandmeister.network/v2/talkgroup/{numeric_tg_id}'
-                        response = requests.get(url, verify=False)
-                        response.raise_for_status()
-                        data = response.json()
-                        if 'Name' in data and data['Name']:
-                            new_row[0] = data['Name']  # Column A: ContactName from API
-                            print(f" Found: {data['Name']}")
-                        else:
-                            new_row[0] = numeric_tg_id  # Fallback to ID if no name
-                            print(" No name found")
-                            print(f" Debug - API response: {data}")
-                        time.sleep(0.2)  # Be nice to the API
-                    except Exception as api_error:
-                        print(f"\nError fetching name for TG {numeric_tg_id}: {api_error}")
-                        new_row[0] = numeric_tg_id  # Fallback to ID if API fails
-                    
-                    new_rows.append(new_row)
-            
-            # Get existing talkgroup IDs to avoid duplicates
-            existing_tg_ids = set()
-            for row in rows[2:]:  # Skip header rows
-                if len(row) > 25 and row[25]:  # Check if column Z has a value
-                    existing_tg_ids.add(row[25])
-            
-            # Filter out rows that already exist and ensure column AE is "Group Call"
-            unique_new_rows = []
-            for row in new_rows:
-                if row[25] not in existing_tg_ids:
-                    # Make sure row has enough columns
-                    while len(row) <= 30:
-                        row.append("")
-                    # Set column AE (index 30) to "Group Call"
-                    row[30] = "Group Call"
-                    unique_new_rows.append(row)
-            
-            # Write the updated CSV file with existing entries plus new ones
-            with open(contacts_file, 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(header_rows)
-                writer.writerows(rows[2:])  # Write existing entries after headers
-                writer.writerows(unique_new_rows)  # Append new unique entries
-            
-            print(f"Updated {contacts_file} with {len(unique_new_rows)} new unique talkgroups (total: {len(rows[2:]) + len(unique_new_rows)})")
-        except Exception as e:
-            print(f"Error updating contacts.csv: {e}")
+
     else:
         # Original behavior for non-talkgroup mode
         channel_chunks = [filtered_list[i:i + args.zone_capacity] for i in range(0, len(filtered_list), args.zone_capacity)]

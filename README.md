@@ -43,7 +43,7 @@ optional arguments:
 ```
 
 ## Contact Template
-Contacts added to 'contact_template.csv' will be preseved in the contacts.csv output file.
+Contacts added to 'contact_template.csv' will be preseved in the contacts.csv output file. Modify conact_template.csv if you want contacts (and channel names) named differently than the talkgroup name in Brandmeister.
 
 ## Examples
 
