@@ -331,6 +331,26 @@ st.sidebar.markdown(f"""
 5. Download the generated files
 """, unsafe_allow_html=True)
 
+# Add file uploader for custom contact template
+st.sidebar.header("Upload Custom Contact Template")
+uploaded_file = st.sidebar.file_uploader("Upload your own contact_template.csv", type="csv")
+if uploaded_file is not None:
+    # Create contact_uploads directory if it doesn't exist
+    if not os.path.exists("contact_uploads"):
+        os.makedirs("contact_uploads")
+    
+    # Save the uploaded file
+    with open(os.path.join("contact_uploads", "contact_template.csv"), "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    st.sidebar.success("Custom contact template uploaded successfully!")
+    
+    # Display the uploaded file as a dataframe
+    try:
+        df = pd.read_csv(uploaded_file)
+        st.sidebar.dataframe(df, height=200)
+    except:
+        st.sidebar.warning("Could not display the uploaded file as a table")
+
 st.sidebar.markdown("""
 ## Importing to CPS2
 ### Zone Files

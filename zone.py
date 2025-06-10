@@ -401,13 +401,21 @@ def process_channels():
             
             contacts_file = os.path.join(args.output, 'contacts.csv')
             
-            # Copy template if it exists
-            if exists('contact_template.csv') and not exists(contacts_file):
+            # Check for custom template in contact_uploads directory first, then fall back to default
+            custom_template = os.path.join('contact_uploads', 'contact_template.csv')
+            if exists(custom_template) and not exists(contacts_file):
+                try:
+                    shutil.copy(custom_template, contacts_file)
+                    print(f"Copied custom contact_template.csv from contact_uploads to {contacts_file}")
+                except Exception as e:
+                    print(f"Error copying custom contact template: {e}")
+            # Fall back to default template if no custom template exists
+            elif exists('contact_template.csv') and not exists(contacts_file):
                 try:
                     shutil.copy('contact_template.csv', contacts_file)
-                    print(f"Copied contact_template.csv to {contacts_file}")
+                    print(f"Copied default contact_template.csv to {contacts_file}")
                 except Exception as e:
-                    print(f"Error copying contact template: {e}")
+                    print(f"Error copying default contact template: {e}")
             
             # Create empty contacts file if it doesn't exist
             if not exists(contacts_file):

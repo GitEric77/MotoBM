@@ -43,7 +43,9 @@ optional arguments:
 ```
 
 ## Contact Template
-Contacts added to 'contact_template.csv' will be preseved in the contacts.csv output file. Modify conact_template.csv if you want contacts (and channel names) named differently than the talkgroup name in Brandmeister.
+Contacts are only created when using the -tg or --talkgroups argument. Contacts added to 'contact_template.csv' will be preserved in the contacts.csv output file. Modify contact_template.csv if you want contacts (and channel names) named differently than the talkgroup name in Brandmeister.
+
+You can also leave the default contact_template.csv file alone and place a custom contact_template.csv file in the 'contact_uploads' directory, which will be used instead of the default template. When using the Streamlit web interface, you can upload your custom template directly through the UI.
 
 ## Examples
 
