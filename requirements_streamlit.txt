@@ -7,3 +7,4 @@ mobile-codes
 requests
 tabulate
 urllib3
+zipfile36

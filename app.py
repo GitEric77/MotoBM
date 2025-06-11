@@ -163,6 +163,38 @@ with tab1:
                     
                     if xml_files:
                         st.subheader("Download Generated Files")
+                        
+                        # Create a zip file with all generated files
+                        import io
+                        import zipfile
+                        
+                        # Create a download button for all files in a zip
+                        if xml_files:
+                            zip_buffer = io.BytesIO()
+                            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                                # Add all XML files
+                                for xml_file in xml_files:
+                                    file_path = os.path.join(output_dir, xml_file)
+                                    with open(file_path, "r") as file:
+                                        zip_file.writestr(xml_file, file.read())
+                            
+                            # Create download button for the zip file
+                            zip_buffer.seek(0)
+                            zip_bytes = zip_buffer.getvalue()
+                            zip_filename = f"mototrbo_files_{session_id[:8]}.zip"
+                            st.download_button(
+                                label="📦 Download All Files as ZIP",
+                                data=zip_bytes,
+                                file_name=zip_filename,
+                                mime="application/zip",
+                                key="download_standard_zip"
+                            )
+                            
+                            # Horizontal line to separate individual file downloads
+                            st.markdown("---")
+                            st.markdown("Or download individual files:")
+                        
+                        # Individual file downloads
                         for xml_file in xml_files:
                             file_path = os.path.join(output_dir, xml_file)
                             with open(file_path, "r") as file:
@@ -363,6 +395,45 @@ with tab2:
                     
                     if xml_files:
                         st.subheader("Download Generated Zone Files")
+                        
+                        # Create a zip file with all generated files
+                        import io
+                        import zipfile
+                        
+                        # Create a download button for all files in a zip
+                        if xml_files or os.path.exists(os.path.join(output_dir, "contacts.csv")):
+                            zip_buffer = io.BytesIO()
+                            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                                # Add all XML files
+                                for xml_file in xml_files:
+                                    file_path = os.path.join(output_dir, xml_file)
+                                    with open(file_path, "r") as file:
+                                        zip_file.writestr(xml_file, file.read())
+                                
+                                # Add contacts.csv if it exists
+                                contacts_file = os.path.join(output_dir, "contacts.csv")
+                                if os.path.exists(contacts_file):
+                                    with open(contacts_file, "r") as file:
+                                        zip_file.writestr("contacts.csv", file.read())
+                            
+                            # Create download button for the zip file
+                            zip_buffer.seek(0)
+                            zip_bytes = zip_buffer.getvalue()
+                            b64_zip = base64.b64encode(zip_bytes).decode()
+                            zip_filename = f"mototrbo_files_{session_id[:8]}.zip"
+                            st.download_button(
+                                label="📦 Download All Files as ZIP",
+                                data=zip_bytes,
+                                file_name=zip_filename,
+                                mime="application/zip",
+                                key="download_all_zip"
+                            )
+                            
+                            # Horizontal line to separate individual file downloads
+                            st.markdown("---")
+                            st.markdown("Or download individual files:")
+                        
+                        # Individual file downloads
                         for xml_file in xml_files:
                             file_path = os.path.join(output_dir, xml_file)
                             with open(file_path, "r") as file:
