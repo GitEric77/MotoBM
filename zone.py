@@ -372,6 +372,21 @@ def format_channel(item):
     '''
 
 
+def cleanup_contact_uploads():
+    """Delete files in the contact_uploads directory after processing"""
+    import os
+    
+    if exists('contact_uploads'):
+        for file in os.listdir('contact_uploads'):
+            file_path = os.path.join('contact_uploads', file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                    print(f"Deleted {file_path}")
+            except Exception as e:
+                print(f"Error deleting {file_path}: {e}")
+
+
 def process_channels():
     global output_list
 
@@ -632,3 +647,4 @@ if __name__ == '__main__':
     download_file()
     filter_list()
     process_channels()
+    cleanup_contact_uploads()

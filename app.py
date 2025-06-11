@@ -15,7 +15,7 @@ tab1, tab2 = st.tabs(["Standard Mode", "Talkgroup Mode"])
 
 with tab1:
     st.header("Standard Mode")
-    
+    st.markdown("Create a single zone file with channels for each repeater timeslot")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -151,14 +151,54 @@ with tab1:
                             b64 = base64.b64encode(file_content.encode()).decode()
                             href = f'<a href="data:application/octet-stream;base64,{b64}" download="{xml_file}">Download {xml_file}</a>'
                             st.markdown(href, unsafe_allow_html=True)
+                    
+                    # Clean up contact_uploads directory
+                    if os.path.exists("contact_uploads"):
+                        for file in os.listdir("contact_uploads"):
+                            file_path = os.path.join("contact_uploads", file)
+                            try:
+                                if os.path.isfile(file_path):
+                                    os.unlink(file_path)
+                            except Exception as e:
+                                st.warning(f"Error deleting {file_path}: {e}")
                 else:
                     st.error("Error generating zone files")
                     st.code(error)
 
 with tab2:
     st.header("Talkgroup Mode")
-    st.markdown("Create channels only for active talkgroups on repeaters")
+    st.markdown("Create a zone file for each repeater with channels for talkgroups on the timeslots")
     
+    # Create download link for contact_template.csv
+    template_href = ""
+    if os.path.exists("contact_template.csv"):
+        with open("contact_template.csv", "r") as file:
+            template_content = file.read()
+        template_b64 = base64.b64encode(template_content.encode()).decode()
+        template_href = f'<a href="data:text/csv;base64,{template_b64}" download="contact_template.csv">contact_template.csv</a>'
+    
+    # Add file uploader for custom contact template
+    st.subheader("Upload Custom Contact Template")
+    st.markdown(f"Download and modify the {template_href} file if you want talkgroups named differently than Brandmeister", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload your own contact_template.csv", type="csv", key="tg_template_upload")
+    if uploaded_file is not None:
+        # Create contact_uploads directory if it doesn't exist
+        if not os.path.exists("contact_uploads"):
+            os.makedirs("contact_uploads")
+        
+        # Save the uploaded file
+        with open(os.path.join("contact_uploads", "contact_template.csv"), "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.success("Custom contact template uploaded successfully!")
+        
+        # Display the uploaded file as a dataframe
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.dataframe(df, height=200)
+        except:
+            st.warning("Could not display the uploaded file as a table")
+    
+    st.subheader("Search Settings")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -307,6 +347,16 @@ with tab2:
                         b64 = base64.b64encode(file_content.encode()).decode()
                         href = f'<a href="data:text/csv;base64,{b64}" download="contacts.csv">Download contacts.csv</a>'
                         st.markdown(href, unsafe_allow_html=True)
+                    
+                    # Clean up contact_uploads directory
+                    if os.path.exists("contact_uploads"):
+                        for file in os.listdir("contact_uploads"):
+                            file_path = os.path.join("contact_uploads", file)
+                            try:
+                                if os.path.isfile(file_path):
+                                    os.unlink(file_path)
+                            except Exception as e:
+                                st.warning(f"Error deleting {file_path}: {e}")
                 else:
                     st.error("Error generating talkgroup files")
                     st.code(error)
@@ -314,42 +364,14 @@ with tab2:
 # Help section
 st.sidebar.header("Help")
 
-# Create download link for contact_template.csv
-template_href = ""
-if os.path.exists("contact_template.csv"):
-    with open("contact_template.csv", "r") as file:
-        template_content = file.read()
-    template_b64 = base64.b64encode(template_content.encode()).decode()
-    template_href = f'<a href="data:text/csv;base64,{template_b64}" download="contact_template.csv">contact_template.csv</a>'
-
-st.sidebar.markdown(f"""
+st.sidebar.markdown("""
 ## How to use
 1. Choose between Standard Mode or Talkgroup Mode
 2. Fill in the required fields
-3. Upload a modified {template_href} file if you want the talkgroups named differently than Brandmeister
+3. In Talkgroup Mode, upload a custom contact template if needed
 4. Click the Generate button
 5. Download the generated files
 """, unsafe_allow_html=True)
-
-# Add file uploader for custom contact template
-st.sidebar.header("Upload Custom Contact Template")
-uploaded_file = st.sidebar.file_uploader("Upload your own contact_template.csv", type="csv")
-if uploaded_file is not None:
-    # Create contact_uploads directory if it doesn't exist
-    if not os.path.exists("contact_uploads"):
-        os.makedirs("contact_uploads")
-    
-    # Save the uploaded file
-    with open(os.path.join("contact_uploads", "contact_template.csv"), "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.sidebar.success("Custom contact template uploaded successfully!")
-    
-    # Display the uploaded file as a dataframe
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.sidebar.dataframe(df, height=200)
-    except:
-        st.sidebar.warning("Could not display the uploaded file as a table")
 
 st.sidebar.markdown("""
 ## Importing to CPS2
