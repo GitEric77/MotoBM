@@ -4,8 +4,27 @@ import os
 import pandas as pd
 from io import StringIO
 import base64
+import uuid
+import hashlib
+from datetime import datetime
 
 st.set_page_config(page_title="MOTOTRBO Zone Generator", page_icon="📻", layout="wide")
+
+# Function to generate a unique session ID for each user
+def get_session_id():
+    # Check if session_id exists in session state
+    if 'session_id' not in st.session_state:
+        # Generate a unique session ID based on timestamp and random UUID
+        unique_id = f"{datetime.now().timestamp()}_{uuid.uuid4()}"
+        # Hash the ID to make it shorter but still unique
+        hashed_id = hashlib.md5(unique_id.encode()).hexdigest()
+        # Store in session state
+        st.session_state.session_id = hashed_id
+    
+    return st.session_state.session_id
+
+# Get or create a unique session ID for the current user
+session_id = get_session_id()
 
 st.title("MOTOTRBO Zone Generator")
 st.markdown("Generate MOTOTRBO zone files from BrandMeister repeater list")
@@ -78,8 +97,9 @@ with tab1:
         elif not zone_name:
             st.error("Please enter a zone name")
         else:
-            # Build command
-            cmd = ["python", "zone.py", "-n", zone_name, "-b", band, "-t", search_type, "-o", "output"]
+            # Build command with user-specific output directory
+            user_output_dir = f"output_{session_id}"
+            cmd = ["python", "zone.py", "-n", zone_name, "-b", band, "-t", search_type, "-o", user_output_dir]
             
             if force_download:
                 cmd.extend(["-f"])
@@ -135,8 +155,8 @@ with tab1:
                     st.success("Zone files generated successfully!")
                     st.code(output)
                     
-                    # Find generated XML files in output directory
-                    output_dir = "output"
+                    # Find generated XML files in user-specific output directory
+                    output_dir = f"output_{session_id}"
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
                     xml_files = [f for f in os.listdir(output_dir) if f.endswith('.xml')]
@@ -152,10 +172,11 @@ with tab1:
                             href = f'<a href="data:application/octet-stream;base64,{b64}" download="{xml_file}">Download {xml_file}</a>'
                             st.markdown(href, unsafe_allow_html=True)
                     
-                    # Clean up contact_uploads directory
-                    if os.path.exists("contact_uploads"):
-                        for file in os.listdir("contact_uploads"):
-                            file_path = os.path.join("contact_uploads", file)
+                    # Clean up user-specific contact_uploads directory
+                    user_uploads_dir = f"contact_uploads_{session_id}"
+                    if os.path.exists(user_uploads_dir):
+                        for file in os.listdir(user_uploads_dir):
+                            file_path = os.path.join(user_uploads_dir, file)
                             try:
                                 if os.path.isfile(file_path):
                                     os.unlink(file_path)
@@ -168,6 +189,11 @@ with tab1:
 with tab2:
     st.header("Talkgroup Mode")
     st.markdown("Create a zone file for each repeater with channels for talkgroups on the timeslots")
+    
+    # Create user-specific output directory using session ID
+    user_output_dir = f"output_{session_id}"
+    if not os.path.exists(user_output_dir):
+        os.makedirs(user_output_dir)
     
     # Create download link for contact_template.csv
     template_href = ""
@@ -182,13 +208,29 @@ with tab2:
     st.markdown(f"Download and modify the {template_href} file if you want talkgroups named differently than Brandmeister", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("Upload your own contact_template.csv", type="csv", key="tg_template_upload")
     if uploaded_file is not None:
-        # Create contact_uploads directory if it doesn't exist
+        # Create user-specific contact_uploads directory
+        user_uploads_dir = f"contact_uploads_{session_id}"
+        if not os.path.exists(user_uploads_dir):
+            os.makedirs(user_uploads_dir)
+        
+        # Save the uploaded file to user-specific directory
+        template_path = os.path.join(user_uploads_dir, "contact_template.csv")
+        with open(template_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+            
+        # Also create a symlink in the contact_uploads directory for backward compatibility
         if not os.path.exists("contact_uploads"):
             os.makedirs("contact_uploads")
-        
-        # Save the uploaded file
-        with open(os.path.join("contact_uploads", "contact_template.csv"), "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        try:
+            # Remove any existing file first
+            contact_uploads_path = os.path.join("contact_uploads", "contact_template.csv")
+            if os.path.exists(contact_uploads_path):
+                os.remove(contact_uploads_path)
+            # Copy the file instead of creating a symlink (more compatible)
+            import shutil
+            shutil.copy2(template_path, contact_uploads_path)
+        except Exception as e:
+            st.warning(f"Could not create backup of template: {e}")
         st.success("Custom contact template uploaded successfully!")
         
         # Display the uploaded file as a dataframe
@@ -260,8 +302,9 @@ with tab2:
         elif search_type_tg == "gps" and (latitude_tg == 0 and longitude_tg == 0):
             st.error("Please enter valid GPS coordinates")
         else:
-            # Build command
-            cmd = ["python", "zone.py", "-b", band_tg, "-t", search_type_tg, "-tg", "-o", "output"]
+            # Build command with user-specific output directory
+            user_output_dir = f"output_{session_id}"
+            cmd = ["python", "zone.py", "-b", band_tg, "-t", search_type_tg, "-tg", "-o", user_output_dir]
             
             if force_download_tg:
                 cmd.extend(["-f"])
@@ -312,8 +355,8 @@ with tab2:
                     st.success("Talkgroup files generated successfully!")
                     st.code(output)
                     
-                    # Find generated XML files and contacts.csv in output directory
-                    output_dir = "output"
+                    # Find generated XML files and contacts.csv in user-specific output directory
+                    output_dir = f"output_{session_id}"
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
                     xml_files = [f for f in os.listdir(output_dir) if f.endswith('.xml')]
@@ -348,10 +391,11 @@ with tab2:
                         href = f'<a href="data:text/csv;base64,{b64}" download="contacts.csv">Download contacts.csv</a>'
                         st.markdown(href, unsafe_allow_html=True)
                     
-                    # Clean up contact_uploads directory
-                    if os.path.exists("contact_uploads"):
-                        for file in os.listdir("contact_uploads"):
-                            file_path = os.path.join("contact_uploads", file)
+                    # Clean up user-specific contact_uploads directory
+                    user_uploads_dir = f"contact_uploads_{session_id}"
+                    if os.path.exists(user_uploads_dir):
+                        for file in os.listdir(user_uploads_dir):
+                            file_path = os.path.join(user_uploads_dir, file)
                             try:
                                 if os.path.isfile(file_path):
                                     os.unlink(file_path)
@@ -393,3 +437,7 @@ MOTOTRBO Zone Generator uses the [BrandMeister API](https://wiki.brandmeister.ne
 
 [View on GitHub](https://github.com/EricGit77/MotoBM)
 """)
+
+# Display session ID in sidebar for debugging (can be removed in production)
+st.sidebar.header("Session Info")
+st.sidebar.text(f"Session ID: {session_id[:8]}...")

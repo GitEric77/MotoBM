@@ -376,6 +376,7 @@ def cleanup_contact_uploads():
     """Delete files in the contact_uploads directory after processing"""
     import os
     
+    # Clean up regular contact_uploads directory
     if exists('contact_uploads'):
         for file in os.listdir('contact_uploads'):
             file_path = os.path.join('contact_uploads', file)
@@ -385,6 +386,18 @@ def cleanup_contact_uploads():
                     print(f"Deleted {file_path}")
             except Exception as e:
                 print(f"Error deleting {file_path}: {e}")
+    
+    # Clean up user-specific contact_uploads directories
+    for dir_name in os.listdir('.'):
+        if dir_name.startswith('contact_uploads_'):
+            for file in os.listdir(dir_name):
+                file_path = os.path.join(dir_name, file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                        print(f"Deleted {file_path}")
+                except Exception as e:
+                    print(f"Error deleting {file_path}: {e}")
 
 
 def process_channels():
@@ -416,7 +429,24 @@ def process_channels():
             
             contacts_file = os.path.join(args.output, 'contacts.csv')
             
-            # Check for custom template in contact_uploads directory first, then fall back to default
+            # Check for custom template in user-specific contact_uploads directory first
+            user_uploads_dir = None
+            for dir_name in os.listdir('.'):
+                if dir_name.startswith('contact_uploads_'):
+                    user_uploads_dir = dir_name
+                    break
+                    
+            if user_uploads_dir:
+                custom_template = os.path.join(user_uploads_dir, 'contact_template.csv')
+                if exists(custom_template):
+                    try:
+                        shutil.copy(custom_template, contacts_file)
+                        print(f"Copied custom contact_template.csv from {user_uploads_dir} to {contacts_file}")
+                        # Template found and copied, skip to next section
+                    except Exception as e:
+                        print(f"Error copying custom contact template from {user_uploads_dir}: {e}")
+            
+            # Then check regular contact_uploads directory
             custom_template = os.path.join('contact_uploads', 'contact_template.csv')
             if exists(custom_template) and not exists(contacts_file):
                 try:
