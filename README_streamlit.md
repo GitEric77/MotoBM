@@ -44,9 +44,9 @@ This is a web-based frontend for the MOTOTRBO zone file generator that uses the 
 6. Download the generated XML files and contacts.csv
 
 ### Custom Contact Template
-1. Download the default contact_template.csv from the sidebar
-2. Modify the template with your preferred contact names
-3. Upload your modified template using the "Upload Custom Contact Template" section in the sidebar
+1. Download the default contact_template.csv
+2. Modify the template with your preferred contact names (ensure to specify Group Call or Private Call)
+3. Upload your modified template using the "Upload Custom Contact Template"
 4. Your custom template will be used when generating talkgroup files
 
 ## Importing to CPS2
