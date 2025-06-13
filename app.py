@@ -272,6 +272,10 @@ with tab2:
         except:
             st.warning("Could not display the uploaded file as a table")
     
+    st.subheader("Channel Naming")
+    use_city_prefix = st.checkbox("Use city abbreviation prefix for channel names", 
+                                help="Prefix channel names with 3-character city abbreviation (e.g. 'NYC.TG123')")
+    
     st.subheader("Search Settings")
     col1, col2 = st.columns(2)
     
@@ -337,6 +341,10 @@ with tab2:
             # Build command with user-specific output directory
             user_output_dir = f"output_{session_id}"
             cmd = ["python", "zone.py", "-b", band_tg, "-t", search_type_tg, "-tg", "-o", user_output_dir]
+            
+            # Add city prefix option if selected
+            if use_city_prefix:
+                cmd.extend(["--city-prefix"])
             
             if force_download_tg:
                 cmd.extend(["-f"])

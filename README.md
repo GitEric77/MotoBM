@@ -12,7 +12,7 @@ See README_streamlit.md for using the Streamlit web GUI
 ## Usage
 
 ```
-usage: zone.py [-h] [-f] [-n NAME] -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lon LON] [-p [PEP]] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg] [-o OUTPUT]
+usage: zone.py [-h] [-f] [-n NAME] -b {vhf,uhf} -t {mcc,qth,gps} [-m MCC] [-q QTH] [-r RADIUS] [-lat LAT] [-lon LON] [-p [PEP]] [-6] [-zc ZONE_CAPACITY] [-c] [-cs CALLSIGN] [-tg] [--city-prefix] [-o OUTPUT]
 
 Generate MOTOTRBO zone files from BrandMeister.
 
@@ -38,6 +38,7 @@ optional arguments:
   -cs CALLSIGN, --callsign CALLSIGN
                         Only list callsigns containing specified string like a region number.
   -tg, --talkgroups     Create channels only for active talkgroups on repeaters (no channels with blank contact ID).
+  --city-prefix         Prefix channel names with 3-character city abbreviation (e.g. "NYC.TG123").
   -o OUTPUT, --output OUTPUT
                         Output directory for generated files. Default is "output".
 ```
@@ -68,6 +69,10 @@ will create XML zone file(s) with all repeaters for 70cm band with 6 digit ID (r
 `./zone.py -b uhf -t mcc -m 310 -tg`
 
 will create separate XML zone files for each repeater with active talkgroups. It will also create a contacts.csv file with all unique talkgroup IDs and their names fetched from the BrandMeister API.
+
+`./zone.py -b uhf -t mcc -m 310 -tg --city-prefix`
+
+will create separate XML zone files for each repeater with active talkgroups, using a 3-character city abbreviation prefix in the channel names (e.g., "NYC.Worldwide").
 
 `./zone.py -n 'Minneapolis' -b uhf -t gps -lat 44.9570 -lon=-93.2780 -6 -o custom_folder`
 
@@ -105,6 +110,11 @@ When using the `-tg` flag, the script operates in talkgroup mode:
 3. Abbreviates zone aliases to fit within 16 characters (radio display limit)
 4. Creates a contacts.csv file with all unique talkgroup IDs
 5. Fetches talkgroup names from the BrandMeister API and adds them to contacts.csv
+
+When using the `--city-prefix` flag with talkgroup mode:
+1. Channel names will be prefixed with a 3-character abbreviation of the city name
+2. A dot separator will be added between the city abbreviation and the talkgroup name
+3. Total channel name length will still be limited to 16 characters
 
 The contacts.csv file can be imported into CPS2 to create digital contacts for all talkgroups.
 

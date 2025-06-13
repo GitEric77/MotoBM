@@ -44,6 +44,8 @@ parser.add_argument('-tg', '--talkgroups', action='store_true',
                     help='Create channels only for active talkgroups on repeaters (no channels with blank contact ID).')
 parser.add_argument('-o', '--output', default='output',
                     help='Output directory for generated files. Default is "output".')
+parser.add_argument('--city-prefix', action='store_true',
+                    help='Prefix channel names with 3-character city abbreviation (e.g. "NYC.TG123")')
 
 
 args = parser.parse_args()
@@ -234,14 +236,30 @@ def format_talkgroup_channel(item, tg_id, timeslot):
     
     # Use contact name from contacts.csv if available, otherwise use talkgroup name from API or talkgroup ID
     if contact_name:
-        ch_alias = f"{contact_name}"[:16]  # Limit to 16 characters
-        ukp_value = str(contact_name)[:16]  # Limit to 16 characters
+        name_base = contact_name
     elif tg_name:
-        ch_alias = f"{tg_name}"[:16]  # Limit to 16 characters
-        ukp_value = str(tg_name)[:16]  # Limit to 16 characters
+        name_base = tg_name
     else:
-        ch_alias = f"TG{tg_id}"[:16]  # Limit to 16 characters
-        ukp_value = str(tg_id)[:16]  # Limit to 16 characters
+        name_base = f"TG{tg_id}"
+    
+    # Add city prefix if option is enabled
+    if args.city_prefix:
+        # Get city name and create 3-char abbreviation
+        city = item['city'].split(',')[0].strip()
+        # Create abbreviation: use first 3 chars, or if shorter than 3 chars, pad with 'X'
+        if len(city) >= 3:
+            city_abbr = city[:3].upper()
+        else:
+            city_abbr = (city + 'XXX')[:3].upper()
+        
+        # Combine with separator, ensuring total length <= 16
+        ch_alias = f"{city_abbr}.{name_base}"[:16]
+        # For CP_UKPPERS, use the original contact name without city prefix
+        ukp_value = name_base[:16]
+    else:
+        # Standard naming without city prefix
+        ch_alias = name_base[:16]
+        ukp_value = name_base[:16]
     
     ch_rx = item['rx']
     ch_tx = item['tx']
