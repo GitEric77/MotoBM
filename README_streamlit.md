@@ -20,12 +20,12 @@ This is a web-based frontend for the MOTOTRBO zone file generator that uses the 
 
 - **User-friendly interface** for generating MOTOTRBO zone files
 - **Standard Mode** for creating zone files with all repeaters
-- **Talkgroup Mode** for creating zone files with active talkgroups
+- **Talkgroup Mode** for creating zone files with active talkgroups and respective contacts
 - **Download** generated XML files and contacts.csv directly from the browser
 - **Bulk Download** all generated files in a single ZIP archive
 - **City Prefix** option to name channels with city abbreviation and talkgroup name
 - **Unique Session IDs** for multiple users to work simultaneously
-- **Visualize** contacts data in a table format
+- **Visualize** zone file and contact output in the web interface
 
 ## Usage
 
@@ -36,13 +36,13 @@ This is a web-based frontend for the MOTOTRBO zone file generator that uses the 
 4. Fill in the required fields based on your search type
 5. Configure additional options as needed
 6. Click "Generate Zone Files"
-7. Download the generated XML files individually or as a ZIP archive
+7. Download the generated XML file or as a ZIP archive
 
 ### Talkgroup Mode
 1. Select the band (VHF or UHF)
 2. Choose a search type (MCC, QTH, or GPS)
 3. Fill in the required fields based on your search type
-4. Optionally enable "Use city abbreviation prefix for channel names" to add city prefixes to channels
+4. Optionally enable "Use city abbreviation prefix for channel names" to add city prefixes to channels Ex: BUR.MN State
 5. Configure additional options as needed
 6. Click "Generate Talkgroup Files"
 7. Download the generated XML files and contacts.csv individually or as a ZIP archive
@@ -54,13 +54,13 @@ This is a web-based frontend for the MOTOTRBO zone file generator that uses the 
 4. Your custom template will be used when generating talkgroup files
 
 ## Importing to CPS2
+!!!You must import contacts prior to pasting zone files!!!
+### Contacts (Talkgroup Mode)
+1. In CPS2, go to Contacts → Contacts, click on button with three dots above contacts list and select import
+2. Select the contacts.csv file
 
 ### Zone Files
-- Open the XML file in a text editor
-- Select All and Copy
-- In CPS2, go to Configuration → Zone/Channel Assignment
-- Right-click on Zone and choose Paste
-
-### Contacts (Talkgroup Mode)
-- In CPS2, go to Contacts → Digital
-- Click Import and select the contacts.csv file
+1. Open the XML file in a text editor
+2. Select all data in XML file and copy (Ctrl+a, Ctrl+c)
+3. In CPS2, go to Configuration → Zone/Channel Assignment
+4. Right-click on word Zone and choose paste (Ctrl+v)
