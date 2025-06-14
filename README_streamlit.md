@@ -22,6 +22,9 @@ This is a web-based frontend for the MOTOTRBO zone file generator that uses the 
 - **Standard Mode** for creating zone files with all repeaters
 - **Talkgroup Mode** for creating zone files with active talkgroups
 - **Download** generated XML files and contacts.csv directly from the browser
+- **Bulk Download** all generated files in a single ZIP archive
+- **City Prefix** option to name channels with city abbreviation and talkgroup name
+- **Unique Session IDs** for multiple users to work simultaneously
 - **Visualize** contacts data in a table format
 
 ## Usage
@@ -33,15 +36,22 @@ This is a web-based frontend for the MOTOTRBO zone file generator that uses the 
 4. Fill in the required fields based on your search type
 5. Configure additional options as needed
 6. Click "Generate Zone Files"
-7. Download the generated XML files
+7. Download the generated XML files individually or as a ZIP archive
 
 ### Talkgroup Mode
 1. Select the band (VHF or UHF)
 2. Choose a search type (MCC, QTH, or GPS)
 3. Fill in the required fields based on your search type
-4. Configure additional options as needed
-5. Click "Generate Talkgroup Files"
-6. Download the generated XML files and contacts.csv
+4. Optionally enable "Use city abbreviation prefix for channel names" to add city prefixes to channels
+5. Configure additional options as needed
+6. Click "Generate Talkgroup Files"
+7. Download the generated XML files and contacts.csv individually or as a ZIP archive
+
+### Custom Contact Template
+1. Download the default contact_template.csv
+2. Modify the template with your preferred contact names (ensure to specify Group Call or Private Call)
+3. Upload your modified template using the "Upload Custom Contact Template"
+4. Your custom template will be used when generating talkgroup files
 
 ## Importing to CPS2
 
