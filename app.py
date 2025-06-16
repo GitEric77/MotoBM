@@ -489,11 +489,13 @@ st.sidebar.header("Help")
 
 st.sidebar.markdown("""
 ## How to use
+[Demo Video](https://youtu.be/cRO7uoUekoY)
 1. Choose between Standard Mode or Talkgroup Mode
 2. Fill in the required fields
 3. In Talkgroup Mode, upload a custom contact template if needed
 4. Click the Generate button
 5. Download the generated files
+
 """, unsafe_allow_html=True)
 
 st.sidebar.markdown("""
@@ -513,10 +515,7 @@ st.sidebar.markdown("""
 st.sidebar.header("About")
 st.sidebar.markdown("""
 MOTOTRBO Zone Generator uses the [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve DMR repeater information and generate zone files for Motorola DMR radios.
-
 [View on GitHub](https://github.com/GitEric77/MotoBM)
-""")
-[Demo Video](https://youtu.be/cRO7uoUekoY)
 """)
 
 # Display session ID in sidebar for debugging (can be removed in production)
