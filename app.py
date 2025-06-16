@@ -516,6 +516,8 @@ MOTOTRBO Zone Generator uses the [BrandMeister API](https://wiki.brandmeister.ne
 
 [View on GitHub](https://github.com/GitEric77/MotoBM)
 """)
+[Demo Video](https://youtu.be/cRO7uoUekoY)
+""")
 
 # Display session ID in sidebar for debugging (can be removed in production)
 st.sidebar.header("Session Info")
