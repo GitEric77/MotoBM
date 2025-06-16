@@ -3,18 +3,20 @@
 This is a web-based frontend for the MOTOTRBO zone file generator that uses the BrandMeister API to retrieve DMR repeater information and generate zone files for Motorola DMR radios.
 
 ## Installation
+If you want to host your own copy of the webapp you can leverage the userdata file to bootstrap a linux machine (I host on AWS using Amazon Linux 2023). In general the install is:
+1. Ensure you have Python installed
 
-1. Make sure you have all the required dependencies installed:
+2. Make sure you have all the required dependencies installed:
    ```
    pip install -r requirements_streamlit.txt
    ```
 
-2. Run the Streamlit app:
+3. Run the Streamlit app:
    ```
    streamlit run app.py
    ```
 
-3. The app will open in your default web browser at http://localhost:8501
+4. The app will open in your default web browser at http://localhost:8501
 
 ## Features
 
