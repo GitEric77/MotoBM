@@ -1,10 +1,10 @@
 # MotoBM
 MOTOTRBO Zone Generator makes use of [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve a list of DMR repeaters and create xml files for importing into Motorola CPS2 as zones, filtered by country or location. This is a branch of yl3im (Inga's) motobm repo https://github.com/yl3im/motobm. Inga's original creation of motobm inspired me to iterate the solution based on different use cases (talkgroups with contacts and a web app).
 
-# What is MotoBM video
+# What is MotoTRBO Zone Generator
 https://youtu.be/t4NljXAuGx8
 
-# How to use MotoBM
+# How to use MotoTRBO Zone Generator
 https://youtu.be/cRO7uoUekoY
 
 ## Web App
