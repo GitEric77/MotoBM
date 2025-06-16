@@ -514,7 +514,7 @@ st.sidebar.header("About")
 st.sidebar.markdown("""
 MOTOTRBO Zone Generator uses the [BrandMeister API](https://wiki.brandmeister.network/index.php/API/Halligan_API) to retrieve DMR repeater information and generate zone files for Motorola DMR radios.
 
-[View on GitHub](https://github.com/EricGit77/MotoBM)
+[View on GitHub](https://github.com/GitEric77/MotoBM)
 """)
 
 # Display session ID in sidebar for debugging (can be removed in production)

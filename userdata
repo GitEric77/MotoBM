@@ -1,0 +1,12 @@
+#!/bin/bash
+aws s3api get-object --bucket ganskeedeployment --key MotoBM.zip /home/ec2-user/MotoBM.zip
+cd /home/ec2-user/
+unzip /home/ec2-user/MotoBM.zip
+sudo chown -R ec2-user MotoBM
+cd /home/ec2-user/MotoBM/
+python3 -m venv .venv
+source .venv/bin/activate
+sudo dnf install python3.11 -y
+sudo dnf install python3.11-pip -y
+pip install -r requirements_streamlit.txt
+nohup streamlit run app.py

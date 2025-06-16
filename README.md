@@ -6,7 +6,7 @@ MOTOTRBO zone file generator from BrandMeister repeater list. It makes use of [B
 * `git clone https://github.com/GitEric77/motobm.git`
 * `pip install -r requirements.txt` as root or `pip install -r requirements.txt --user` as ordinary user.
 
-## GUI
+## WebApp
 See README_streamlit.md for installation and usage with web front end.
 
 ## Usage
