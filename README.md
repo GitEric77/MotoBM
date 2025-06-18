@@ -149,4 +149,4 @@ You can also leave the default contact_template.csv file alone and place a custo
 
 ## What about CPS16?
 
-Unfortunately, CPS16 doesn't support pasting of XML content. Therefore this method only works for CPS2 which requires a [radio firmware version of R2.10 or higher](https://cwh050.mywikis.wiki/wiki/List_of_software_versions).
+Unfortunately, CPS16 doesn't support pasting of XML content. Therefore this method only works for CPS2.
