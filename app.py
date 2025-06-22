@@ -538,7 +538,7 @@ st.sidebar.markdown("""
 [Demo Video](https://youtu.be/cRO7uoUekoY)
 1. Choose between Standard Mode or Talkgroup Mode
 2. Fill in the required fields
-3. In Talkgroup Mode, upload a custom contact template if needed
+3. In Talkgroup Mode, upload a custom contact template (optional)
 4. Click the Generate button
 5. Download the generated files
 
