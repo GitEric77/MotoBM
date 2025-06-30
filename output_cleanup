@@ -1,0 +1,50 @@
+1. Create the service file (cleanup-output-dirs.service):
+ini
+[Unit]
+Description=Delete output_* directories
+After=multi-user.target
+
+[Service]
+Type=oneshot
+User=username
+WorkingDirectory=/home/username
+ExecStart=/bin/bash -c 'find /home/username -maxdepth 1 -type d -name "output_*" -exec rm -rf {} \; 2>/dev/null'
+StandardOutput=journal
+StandardError=journal
+
+
+2. Create the timer file (cleanup-output-dirs.timer):
+ini
+[Unit]
+Description=Run cleanup-output-dirs daily at 1:00 AM
+Requires=cleanup-output-dirs.service
+
+[Timer]
+OnCalendar=*-*-* 01:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+
+3. Installation commands:
+bash
+# Copy files to systemd directory
+sudo cp cleanup-output-dirs.service /etc/systemd/system/
+sudo cp cleanup-output-dirs.timer /etc/systemd/system/
+
+# Reload systemd and enable the timer
+sudo systemctl daemon-reload
+sudo systemctl enable cleanup-output-dirs.timer
+sudo systemctl start cleanup-output-dirs.timer
+
+# Check timer status
+sudo systemctl status cleanup-output-dirs.timer
+sudo systemctl list-timers cleanup-output-dirs.timer
+
+
+Key differences from cron:
+• OnCalendar=*-*-* 01:00:00 = Daily at 1:00 AM
+• Persistent=true = Run missed jobs if system was down
+• Better logging integration with systemd journal
+• More robust service management and monitoring
